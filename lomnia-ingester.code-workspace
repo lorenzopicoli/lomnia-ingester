@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+
+    "ruff.enable": true,
+    "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+
+    "editor.formatOnSave": true,
+
+    // VS Code behavior
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      "**/.tox": true
+    },
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  }
+}
