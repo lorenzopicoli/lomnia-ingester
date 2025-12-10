@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Location",
+  "description": "Represents a geographic location entry with associated metadata",
+  "type": "object",
+  "required": [
+    "source",
+    "location",
+    "timezone",
+    "locationRecordedAt",
+    "version"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "The version of the schema used"
+    },
+    "id": {
+      "type": "integer",
+      "description": "Unique identifier for the location record. Must be stable across multiple extractions"
+    },
+    "deviceId": {
+      "type": "integer",
+      "description": "The device that recorded this"
+    },
+    "source": {
+      "type": "string",
+      "description": "The application source used to get this location"
+    },
+    "gpsSource": {
+      "type": "string",
+      "description": "The hardware source used to get this location in the device (e.g., network, gps, fused)",
+      "enum": [
+        "network",
+        "gps",
+        "fused"
+      ]
+    },
+    "accuracy": {
+      "type": "number",
+      "description": "Accuracy of the location in meters"
+    },
+    "verticalAccuracy": {
+      "type": "number",
+      "description": "Vertical accuracy in meters"
+    },
+    "velocity": {
+      "type": "number",
+      "description": "Velocity in km/h"
+    },
+    "altitude": {
+      "type": "number",
+      "description": "Altitude in meters"
+    },
+    "location": {
+      "type": "object",
+      "description": "Geographic point",
+      "properties": {
+        "lat": {
+          "type": "number",
+          "description": "Latitude of the location"
+        },
+        "lng": {
+          "type": "number",
+          "description": "Longitude of the location"
+        }
+      },
+      "required": [
+        "lat",
+        "lng"
+      ]
+    },
+    "trigger": {
+      "type": "string",
+      "description": "What triggered this location update",
+      "enum": [
+        "ping",
+        "circular",
+        "report_location",
+        "manual"
+      ]
+    },
+    "topic": {
+      "type": "string",
+      "description": "Topic associated with this location"
+    },
+    "timezone": {
+      "type": "string",
+      "description": "The user timezone at the time of location recording"
+    },
+    "locationRecordedAt": {
+      "type": "string",
+      "description": "The date at which the location was taken, in UTC time",
+      "format": "date-time"
+    }
+  }
+}
