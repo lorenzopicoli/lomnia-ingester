@@ -1,0 +1,27 @@
+services:
+  garaged:
+    image: dxflrs/garage:v2.1.0
+    container_name: garage
+    ports:
+      - '3900:3900'
+      - '3901:3901'
+      - '3902:3902'
+      - '3903:3903'
+    volumes:
+      - ./garage.toml:/etc/garage.toml
+      - garage_metadata:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+
+    restart: unless-stopped
+  rabbitmq:
+    stdin_open: true
+    tty: true
+    container_name: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    image: rabbitmq:4-management
+
+volumes:
+  garage_metadata:
+  garage_data:
