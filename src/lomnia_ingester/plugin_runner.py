@@ -88,7 +88,7 @@ def run_plugin(plugin: Plugin):
     canonical_dir = Path(tempfile.mkdtemp())
     work_dir = tmp / plugin.folder if plugin.folder is not None else tmp
 
-    last_week = datetime.now(timezone.utc) - timedelta(days=2)
+    last_week = datetime.now(timezone.utc) - timedelta(days=1)
     try:
         if plugin.repo:
             clone_plugin(str(plugin.repo), str(tmp))
