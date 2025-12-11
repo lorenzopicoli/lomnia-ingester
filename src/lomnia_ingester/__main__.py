@@ -1,13 +1,16 @@
-import os
 import shutil
-import subprocess
 import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import boto3
 import pika
+import yaml
 from dotenv import load_dotenv
 from mypy_boto3_s3 import S3Client
+
+from lomnia_ingester.models import FailedToRunPlugin, PluginsConfig
+from lomnia_ingester.plugin_runner import run_plugin
 
 load_dotenv()
 
@@ -41,42 +44,32 @@ def send_message(message: str, queue_name: str = "test_queue"):
     conn.close()
 
 
-def run_plugin(repo_url: str, folder: str):
-    tmp = Path(tempfile.mkdtemp())
-    plugin_dir = tmp / "plugin"
-    work_dir = plugin_dir / folder
-    try:
-        subprocess.run(["git", "clone", repo_url, str(plugin_dir)], check=True)  # noqa: S603, S607
-
-        subprocess.run(["uv", "sync"], cwd=work_dir, check=True)  # noqa: S607
-        env = {
-            **os.environ,  # keep existing env vars
-            "OWNTRACKS_USER": "owntracks",
-            "OWNTRACKS_DEVICE": "shiba",
-        }
-        result = subprocess.run(
-            ["uv", "run", "extract", "--start_date", "1765058675", "--out_dir", ""],  # noqa: S607
-            env=env,
-            cwd=work_dir,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        print("OUTPUT:", result.stdout)
-        print("STDERR:", result.stderr)
-    except subprocess.CalledProcessError as e:
-        print("----- SUBPROCESS ERROR -----")
-        print("COMMAND:", e.cmd)
-        print("RETURN CODE:", e.returncode)
-        print("STDOUT:", e.stdout)
-        print("STDERR:", e.stderr)
-        raise
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+def load_config():
+    with open("plugins.yaml") as stream:
+        try:
+            config = yaml.safe_load(stream)
+            return PluginsConfig(**config)
+        except yaml.YAMLError as exc:
+            print(exc)
 
 
 if __name__ == "__main__":
     # garage_buckets()
     # send_message("Hello world")
-    run_plugin("https://github.com/lorenzopicoli/lomnia-plugins.git", folder="owntracks-recorder")
-    pass
+    config = load_config()
+    if config is None:
+        raise FailedToRunPlugin("MISSING_PLUGINS")
+
+    for plugin in config.plugins:
+        tmp = Path(tempfile.mkdtemp())
+        raw_dir = Path(tempfile.mkdtemp())
+        canonical_dir = Path(tempfile.mkdtemp())
+        work_dir = tmp / plugin.folder if plugin.folder is not None else tmp
+
+        last_week = datetime.now(timezone.utc) - timedelta(days=7)
+        try:
+            run_plugin(plugin)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+            shutil.rmtree(raw_dir, ignore_errors=True)
+            shutil.rmtree(canonical_dir, ignore_errors=True)

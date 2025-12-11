@@ -10,8 +10,8 @@
   ],
   "properties": {
     "deviceId": {
-      "type": "integer",
-      "description": "Unique identifier for the location record"
+      "type": "string",
+      "description": "Unique identifier for the device status"
     },
     "externalId": {
       "type": [
@@ -71,7 +71,7 @@
       "format": "date-time"
     },
     "version": {
-      "type": "integer",
+      "type": "string",
       "description": "The version of the schema used"
     }
   }
