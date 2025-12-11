@@ -3,7 +3,16 @@
   "title": "Device",
   "description": "Represents a device with associated metadata",
   "type": "object",
+  "required": [
+    "source",
+    "id",
+    "version",
+    "entityType"
+  ],
   "properties": {
+    "entityType": {
+      "const": "device"
+    },
     "id": {
       "type": "string",
       "description": "Unique identifier for the device"
@@ -16,10 +25,5 @@
       "type": "string",
       "description": "The version of the schema used"
     }
-  },
-  "required": [
-    "source",
-    "id",
-    "version"
-  ]
+  }
 }

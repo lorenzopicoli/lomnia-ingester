@@ -8,9 +8,13 @@
     "location",
     "timezone",
     "recordedAt",
-    "version"
+    "version",
+    "entityType"
   ],
   "properties": {
+    "entityType": {
+      "const": "location"
+    },
     "version": {
       "type": "string",
       "description": "The version of the schema used"

@@ -6,9 +6,13 @@
   "required": [
     "source",
     "timezone",
-    "version"
+    "version",
+    "entityType"
   ],
   "properties": {
+    "entityType": {
+      "const": "location"
+    },
     "deviceId": {
       "type": "string",
       "description": "Unique identifier for the device status"
