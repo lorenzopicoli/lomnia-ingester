@@ -7,7 +7,7 @@
     "source",
     "location",
     "timezone",
-    "locationRecordedAt",
+    "recordedAt",
     "version"
   ],
   "properties": {
