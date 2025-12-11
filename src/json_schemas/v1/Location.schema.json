@@ -16,7 +16,7 @@
       "description": "The version of the schema used"
     },
     "id": {
-      "type": "integer",
+      "type": "string",
       "description": "Unique identifier for the location record. Must be stable across multiple extractions"
     },
     "deviceId": {
