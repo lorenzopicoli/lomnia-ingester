@@ -12,7 +12,7 @@
   ],
   "properties": {
     "version": {
-      "type": "integer",
+      "type": "string",
       "description": "The version of the schema used"
     },
     "id": {
@@ -20,7 +20,7 @@
       "description": "Unique identifier for the location record. Must be stable across multiple extractions"
     },
     "deviceId": {
-      "type": "integer",
+      "type": "string",
       "description": "The device that recorded this"
     },
     "source": {
@@ -88,7 +88,7 @@
       "type": "string",
       "description": "The user timezone at the time of location recording"
     },
-    "locationRecordedAt": {
+    "recordedAt": {
       "type": "string",
       "description": "The date at which the location was taken, in UTC time",
       "format": "date-time"
