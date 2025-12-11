@@ -1,8 +1,11 @@
 import shutil
 import subprocess
 import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+from pydantic.dataclasses import dataclass
 
 from lomnia_ingester.models import FailedToRunPlugin, Plugin
 
@@ -59,18 +62,50 @@ def clone_plugin(repo_url: str, out_dir: str):
     return result.check_returncode()
 
 
+def copy_plugin(path: str, out_dir: str):
+    src = Path(path)
+    dst = Path(out_dir)
+
+    if not src.exists():
+        raise FailedToRunPlugin("PATH_DOES_NOT_EXIST")
+
+    if dst.exists():
+        shutil.rmtree(dst)
+
+    shutil.copytree(src, dst)
+
+
+@dataclass
+class PluginOutput:
+    raw: Path
+    canonical: Path
+
+
+@contextmanager
 def run_plugin(plugin: Plugin):
     tmp = Path(tempfile.mkdtemp())
     raw_dir = Path(tempfile.mkdtemp())
     canonical_dir = Path(tempfile.mkdtemp())
     work_dir = tmp / plugin.folder if plugin.folder is not None else tmp
 
-    last_week = datetime.now(timezone.utc) - timedelta(days=7)
+    last_week = datetime.now(timezone.utc) - timedelta(days=2)
     try:
-        clone_plugin(str(plugin.repo), str(tmp))
+        if plugin.repo:
+            clone_plugin(str(plugin.repo), str(tmp))
+        elif plugin.path:
+            copy_plugin(str(plugin.path), out_dir=str(tmp))
+        else:
+            raise FailedToRunPlugin("MISSING_REPO_OR_PATH")
+        print("Extracting...")
         run_extract(work_dir, plugin=plugin, out_dir=raw_dir, start_date=last_week)
+        print("Transforming...")
         run_transform(work_dir, plugin=plugin, in_dir=raw_dir, out_dir=canonical_dir)
+        print("TMP FOLDER", tmp)
+        print("RAW FOLDER", raw_dir)
+        print("CANONICAL FOLDER", canonical_dir)
+        yield PluginOutput(raw=raw_dir, canonical=canonical_dir)
     finally:
+        print("FINALLY")
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.rmtree(raw_dir, ignore_errors=True)
         shutil.rmtree(canonical_dir, ignore_errors=True)

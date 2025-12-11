@@ -1,5 +1,6 @@
 plugins:
-  - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
+  # - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
+  - path: /Users/lorenzo/projects/lomnia-plugins
     folder: owntracks-recorder
     env:
       OWNTRACKS_USER: owntracks

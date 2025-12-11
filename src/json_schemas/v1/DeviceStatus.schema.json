@@ -11,7 +11,7 @@
   ],
   "properties": {
     "entityType": {
-      "const": "location"
+      "const": "deviceStatus"
     },
     "deviceId": {
       "type": "string",

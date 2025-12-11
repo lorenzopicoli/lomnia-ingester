@@ -1,10 +1,15 @@
+from pathlib import Path
 from typing import Optional
 
 from pydantic import BaseModel, Field, HttpUrl
 
 
 class Plugin(BaseModel):
-    repo: HttpUrl = Field(default=..., description="Git repository containing the plugin")
+    repo: Optional[HttpUrl] = Field(
+        default=None, description="Git repository containing the plugin (optional if using local path)"
+    )
+
+    path: Optional[Path] = Field(description="Local path to repository containing the plugin")
     folder: Optional[str] = Field(description="Folder inside the repo where the plugin lives")
     env: Optional[dict[str, str]] = Field(
         description="Environment variables to pass to the plugin",
