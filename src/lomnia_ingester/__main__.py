@@ -20,7 +20,7 @@ s3: S3Client = boto3.client(
 )
 
 
-def send_message(message: str, queue_name: str = "test_queue"):
+def send_message(message: str, queue_name: str = "lomnia_ingester"):
     conn = pika.BlockingConnection(
         pika.ConnectionParameters(
             host="localhost",
