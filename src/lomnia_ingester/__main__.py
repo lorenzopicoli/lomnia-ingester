@@ -29,7 +29,7 @@ def send_message(message: str, queue_name: str = "test_queue"):
         )
     )
     channel = conn.channel()
-    channel.queue_declare(queue=queue_name, durable=False)
+    channel.queue_declare(queue=queue_name, durable=True)
 
     channel.basic_publish(
         exchange="",
@@ -46,25 +46,16 @@ def upload_file_and_notify(file_path: Path):
 
     s3.upload_file(str(file_path), BUCKET_NAME, key)
 
-    signed_url = s3.generate_presigned_url(
-        ClientMethod="get_object",
-        Params={
-            "Bucket": BUCKET_NAME,
-            "Key": key,
-        },
-        ExpiresIn=3600,  # seconds
-    )
-
-    message = json.dumps({
-        "file": signed_url,
+    payload = {
         "bucket": BUCKET_NAME,
         "key": key,
-    })
-    message = json.dumps(message)
+    }
+
+    message = json.dumps(payload)
     send_message(message)
 
-    print(f"Uploaded {file_path} → {signed_url}")
-    return signed_url
+    print(f"Uploaded {file_path} to {BUCKET_NAME}/{key}")
+    return key
 
 
 def process_plugin_outputs(canonical_dir: Path):
