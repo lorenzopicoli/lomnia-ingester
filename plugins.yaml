@@ -2,6 +2,7 @@ plugins:
   # - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
   - path: /Users/lorenzo/projects/lomnia-plugins
     folder: owntracks-recorder
+    id: owntracks-recorder
     env:
       OWNTRACKS_USER: owntracks
       OWNTRACKS_DEVICE: shiba

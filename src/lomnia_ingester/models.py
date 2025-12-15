@@ -14,6 +14,9 @@ class Plugin(BaseModel):
     env: Optional[dict[str, str]] = Field(
         description="Environment variables to pass to the plugin",
     )
+    id: str = Field(
+        description="String that uniquely identifies this plugin",
+    )
 
 
 class FailedToRunPlugin(ValueError):

@@ -1,9 +1,6 @@
-from pathlib import Path
-
 from dotenv import load_dotenv
 
 from lomnia_ingester.config import load_config
-from lomnia_ingester.models import FailedToRunPlugin
 from lomnia_ingester.plugin_output_publisher import PluginOutputPublisher
 from lomnia_ingester.plugin_runner import run_plugin
 from lomnia_ingester.queue.publisher import QueuePublisher
@@ -33,16 +30,7 @@ queuePublisher = QueuePublisher(
 publisher = PluginOutputPublisher(storage, queuePublisher)
 
 
-def process_plugin_outputs(canonical_dir: Path):
-    if not canonical_dir.exists():
-        raise FailedToRunPlugin("CANONICAL_FOLDER_NOT_FOUND")
-
-    for file in canonical_dir.iterdir():
-        if file.is_file():
-            publisher.upload_and_notify(file)
-
-
 if __name__ == "__main__":
     for plugin in config.plugins.plugins:
         with run_plugin(plugin) as plugin_output:
-            process_plugin_outputs(plugin_output.canonical)
+            publisher.handle_output(plugin_output)

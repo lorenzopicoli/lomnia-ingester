@@ -79,6 +79,8 @@ def copy_plugin(path: str, out_dir: str):
 class PluginOutput:
     raw: Path
     canonical: Path
+    extracted_at: datetime
+    id: str
 
 
 @contextmanager
@@ -89,6 +91,7 @@ def run_plugin(plugin: Plugin):
     work_dir = tmp / plugin.folder if plugin.folder is not None else tmp
 
     last_week = datetime.now(timezone.utc) - timedelta(days=1)
+    extracted_at = datetime.now(timezone.utc)
     try:
         if plugin.repo:
             clone_plugin(str(plugin.repo), str(tmp))
@@ -103,7 +106,7 @@ def run_plugin(plugin: Plugin):
         print("TMP FOLDER", tmp)
         print("RAW FOLDER", raw_dir)
         print("CANONICAL FOLDER", canonical_dir)
-        yield PluginOutput(raw=raw_dir, canonical=canonical_dir)
+        yield PluginOutput(raw=raw_dir, canonical=canonical_dir, extracted_at=extracted_at, id=plugin.id)
     finally:
         print("FINALLY")
         shutil.rmtree(tmp, ignore_errors=True)
