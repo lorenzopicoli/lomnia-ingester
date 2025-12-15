@@ -1,61 +1,36 @@
-import json
 from pathlib import Path
 
-import boto3
-import pika
-import yaml
 from dotenv import load_dotenv
-from mypy_boto3_s3 import S3Client
 
-from lomnia_ingester.models import FailedToRunPlugin, PluginsConfig
+from lomnia_ingester.config import load_config
+from lomnia_ingester.models import FailedToRunPlugin
+from lomnia_ingester.plugin_output_publisher import PluginOutputPublisher
 from lomnia_ingester.plugin_runner import run_plugin
+from lomnia_ingester.queue.publisher import QueuePublisher
+from lomnia_ingester.storage.s3_client import S3Storage
 
 load_dotenv()
 
-BUCKET_NAME = "lomnia"
 
-s3: S3Client = boto3.client(
-    "s3",
-    endpoint_url="http://localhost:3900",
+config = load_config()
+
+storage = S3Storage(
+    bucket=config.s3.s3_bucket_name,
+    endpoint_url=config.s3.s3_url,
+    region_name=config.s3.s3_region_name,
+    access_key_id=config.s3.s3_access_key_id,
+    secret_access_key=config.s3.s3_secret_access_key,
 )
 
+queuePublisher = QueuePublisher(
+    host=config.queue.queue_host,
+    port=config.queue.queue_port,
+    username=config.queue.queue_username,
+    password=config.queue.queue_password,
+    queue_name=config.queue.queue_name,
+)
 
-def send_message(message: str, queue_name: str = "lomnia_ingester"):
-    conn = pika.BlockingConnection(
-        pika.ConnectionParameters(
-            host="localhost",
-            port=5672,
-            credentials=pika.PlainCredentials("guest", "guest"),
-        )
-    )
-    channel = conn.channel()
-    channel.queue_declare(queue=queue_name, durable=True)
-
-    channel.basic_publish(
-        exchange="",
-        routing_key=queue_name,
-        body=message.encode(),
-    )
-
-    print(f"[sender] Sent: {message}")
-    conn.close()
-
-
-def upload_file_and_notify(file_path: Path):
-    key = f"plugins/{file_path.name}"
-
-    s3.upload_file(str(file_path), BUCKET_NAME, key)
-
-    payload = {
-        "bucket": BUCKET_NAME,
-        "key": key,
-    }
-
-    message = json.dumps(payload)
-    send_message(message)
-
-    print(f"Uploaded {file_path} to {BUCKET_NAME}/{key}")
-    return key
+publisher = PluginOutputPublisher(storage, queuePublisher)
 
 
 def process_plugin_outputs(canonical_dir: Path):
@@ -64,26 +39,10 @@ def process_plugin_outputs(canonical_dir: Path):
 
     for file in canonical_dir.iterdir():
         if file.is_file():
-            upload_file_and_notify(file)
-
-
-def load_config():
-    with open("plugins.yaml") as stream:
-        try:
-            config = yaml.safe_load(stream)
-            return PluginsConfig(**config)
-        except yaml.YAMLError as exc:
-            print(exc)
+            publisher.upload_and_notify(file)
 
 
 if __name__ == "__main__":
-    config = load_config()
-    if config is None:
-        raise FailedToRunPlugin("MISSING_PLUGINS")
-
-    print("Running plugins")
-
-    for plugin in config.plugins:
+    for plugin in config.plugins.plugins:
         with run_plugin(plugin) as plugin_output:
-            print("Plugin run complete:", plugin_output)
             process_plugin_outputs(plugin_output.canonical)

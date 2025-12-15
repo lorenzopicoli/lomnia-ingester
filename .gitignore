@@ -211,3 +211,4 @@ marimo/_lsp/
 __marimo__/
 
 garage-credentials.txt
+.DS_Store
