@@ -7,3 +7,9 @@ plugins:
       OWNTRACKS_USER: owntracks
       OWNTRACKS_DEVICE: shiba
       OWNTRACKS_URL: http://192.168.40.37:8083
+    run_on_startup: true
+    schedule:
+      interval_minutes: 1
+      # interval_hours: 1
+      # interval_days: 1
+      # interval_months: 1
