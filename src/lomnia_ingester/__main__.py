@@ -1,6 +1,6 @@
 import logging
 
-from lomnia_ingester.logging_config import setup_logging
+from lomnia_ingester.logging import setup_logging
 from lomnia_ingester.plugin_scheduler import schedule_and_wait
 
 setup_logging(level="DEBUG")
