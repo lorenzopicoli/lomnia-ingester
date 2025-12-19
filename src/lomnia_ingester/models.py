@@ -1,7 +1,9 @@
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from pydantic import BaseModel, Field, HttpUrl
+from pydantic.dataclasses import dataclass
 
 
 class PluginSchedule(BaseModel):
@@ -25,6 +27,14 @@ class Plugin(BaseModel):
     )
     schedule: PluginSchedule = Field(..., description="Scheduling information for the plugin")
     run_on_startup: bool = Field(default=False, description="Should the plugin run as soon as the program start")
+
+
+@dataclass
+class PluginOutput:
+    raw: Path
+    canonical: Path
+    extracted_at: datetime
+    id: str
 
 
 class FailedToRunPlugin(ValueError):

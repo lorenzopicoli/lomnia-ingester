@@ -5,8 +5,7 @@ from pathlib import Path
 
 from pydantic.dataclasses import dataclass
 
-from lomnia_ingester.models import FailedToRunPlugin
-from lomnia_ingester.plugin_runner import PluginOutput
+from lomnia_ingester.models import FailedToRunPlugin, PluginOutput
 from lomnia_ingester.queue.publisher import QueuePublisher
 from lomnia_ingester.storage.s3_client import S3Storage
 
@@ -57,7 +56,7 @@ class PluginOutputPublisher:
             )
 
         for file in canonical_dir.iterdir():
-            if not file.is_file():
+            if not file.is_file() or file.suffix == ".meta.json":
                 continue
 
             logger.debug(f"Uploading canonical file | plugin_id={output.id} | file={file}")

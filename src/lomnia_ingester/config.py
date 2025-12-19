@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import yaml
 from dotenv import load_dotenv
@@ -8,6 +9,7 @@ from pydantic_settings import BaseSettings
 
 from lomnia_ingester.models import FailedToRunPlugin, Plugin
 from lomnia_ingester.plugin_output_publisher import PluginOutputPublisher
+from lomnia_ingester.plugin_state_store import PluginStateStore
 from lomnia_ingester.queue.publisher import QueuePublisher
 from lomnia_ingester.storage.s3_client import S3Storage
 
@@ -35,11 +37,16 @@ class QueueConfig(BaseSettings):
     queue_name: str = Field(default=...)
 
 
+class StoreConfig(BaseSettings):
+    store_path: Path = Field(default=...)
+
+
 @dataclass
 class Configs:
     s3: S3Config
     queue: QueueConfig
     plugins: PluginsConfig
+    store: StoreConfig
 
 
 def load_plugins_config():
@@ -61,15 +68,12 @@ def load_config() -> Configs:
         s3_config = S3Config()
 
         queue_config = QueueConfig()
+        store_config = StoreConfig()
         plugins_config = load_plugins_config()
     except Exception as exc:
         raise FailedToRunPlugin(str(exc))  # noqa: B904
 
-    return Configs(
-        s3=s3_config,
-        queue=queue_config,
-        plugins=plugins_config,
-    )
+    return Configs(s3=s3_config, queue=queue_config, plugins=plugins_config, store=store_config)
 
 
 config = load_config()
@@ -92,3 +96,5 @@ queuePublisher = QueuePublisher(
 )
 
 publisher = PluginOutputPublisher(storage, queuePublisher)
+
+store = PluginStateStore(config.store.store_path)

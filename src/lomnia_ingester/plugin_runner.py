@@ -1,3 +1,4 @@
+import json
 import logging
 import shutil
 import subprocess
@@ -5,10 +6,10 @@ import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Optional
 
-from pydantic.dataclasses import dataclass
-
-from lomnia_ingester.models import FailedToRunPlugin, Plugin
+from lomnia_ingester.config import store
+from lomnia_ingester.models import FailedToRunPlugin, Plugin, PluginOutput
 
 logger = logging.getLogger(__name__)
 
@@ -145,12 +146,30 @@ def copy_plugin(path: str, out_dir: str):
     shutil.copytree(src, dst)
 
 
-@dataclass
-class PluginOutput:
-    raw: Path
-    canonical: Path
-    extracted_at: datetime
-    id: str
+def get_latest_extract_start(out_dir: Path) -> Optional[datetime]:
+    latest: Optional[datetime] = None
+
+    for meta_path in out_dir.rglob("*.meta.json"):
+        try:
+            with meta_path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            extract_start = data.get("extract_start")
+            if not extract_start:
+                continue
+
+            extract_start_dt = datetime.fromisoformat(extract_start)
+
+            if latest is None or extract_start_dt > latest:
+                latest = extract_start_dt
+
+        except Exception as exc:
+            logger.warning(
+                "Failed to read extract_start from meta file",
+                extra={"path": str(meta_path), "error": str(exc)},
+            )
+
+    return latest
 
 
 @contextmanager
@@ -162,6 +181,9 @@ def run_plugin(plugin: Plugin):
 
     last_week = datetime.now(timezone.utc) - timedelta(days=1)
     extracted_at = datetime.now(timezone.utc)
+
+    start_date = store.get_next_start_date(plugin_name=plugin.id) or last_week
+    logger.info(f"Loading next extraction start date | {start_date}")
 
     logger.info(
         f"Starting plugin run | plugin_id={plugin.id} | tmp={tmp} | raw_dir={raw_dir} | canonical_dir={canonical_dir}"
@@ -180,8 +202,10 @@ def run_plugin(plugin: Plugin):
             work_dir,
             plugin=plugin,
             out_dir=raw_dir,
-            start_date=last_week,
+            start_date=start_date,
         )
+
+        latest_extract_date = get_latest_extract_start(raw_dir)
 
         run_transform(
             work_dir,
@@ -196,6 +220,14 @@ def run_plugin(plugin: Plugin):
             extracted_at=extracted_at,
             id=plugin.id,
         )
+
+        if latest_extract_date is not None:
+            logger.info(f"Saving next extraction start date | {latest_extract_date}")
+            store.set_next_start_date(
+                plugin_name=plugin.id,
+                next_start_date=latest_extract_date,
+                last_successful_run=datetime.now(timezone.utc),
+            )
 
         logger.info(f"Plugin run completed | plugin_id={plugin.id}")
 
