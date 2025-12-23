@@ -56,7 +56,7 @@ class PluginOutputPublisher:
             )
 
         for file in canonical_dir.iterdir():
-            if not file.is_file() or file.suffix == ".meta.json":
+            if not file.is_file():
                 continue
 
             logger.debug(f"Uploading canonical file | plugin_id={output.id} | file={file}")
@@ -76,7 +76,8 @@ class PluginOutputPublisher:
                 f"Publishing canonical file event | plugin_id={output.id} | bucket={result.bucket} | key={result.key}"
             )
 
-            self.publisher.publish(json.dumps(payload).encode())
+            if file.suffix != ".meta.json":
+                self.publisher.publish(json.dumps(payload).encode())
 
         logger.info(f"Finished handling plugin output | plugin_id={output.id}")
 
