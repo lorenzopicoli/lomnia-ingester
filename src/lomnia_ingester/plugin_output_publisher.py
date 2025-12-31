@@ -76,7 +76,7 @@ class PluginOutputPublisher:
                 f"Publishing canonical file event | plugin_id={output.id} | bucket={result.bucket} | key={result.key}"
             )
 
-            if file.suffix != ".meta.json":
+            if not file.name.endswith(".meta.json"):
                 self.publisher.publish(json.dumps(payload).encode())
 
         logger.info(f"Finished handling plugin output | plugin_id={output.id}")
