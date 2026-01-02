@@ -11,7 +11,32 @@ Coordinate, ingest and save data from multiple extractors
 - **Github repository**: <https://github.com/lorenzopicoli/lomnia-ingester/>
 - **Documentation** <https://lorenzopicoli.github.io/lomnia-ingester/>
 
-## Getting started with your project
+## Docker
+
+### Pull the image
+
+```bash
+docker pull ghcr.io/lorenzopicoli/lomnia-ingester:latest
+```
+
+### Run with Docker Compose
+
+1. Copy `example.env` to `.env` and configure your environment variables
+2. Ensure `plugins.yaml` and `plugins_state.json` are in the same directory
+3. Run:
+
+```bash
+docker compose up -d
+```
+
+### Build and run locally
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+The image is automatically built and published to GitHub Container Registry on push to `main` and on version tags.
 
 ### 1. Create a New Repository
 
