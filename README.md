@@ -1,11 +1,5 @@
 # lomnia-ingester
 
-[![Release](https://img.shields.io/github/v/release/lorenzopicoli/lomnia-ingester)](https://img.shields.io/github/v/release/lorenzopicoli/lomnia-ingester)
-[![Build status](https://img.shields.io/github/actions/workflow/status/lorenzopicoli/lomnia-ingester/main.yml?branch=main)](https://github.com/lorenzopicoli/lomnia-ingester/actions/workflows/main.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/gh/lorenzopicoli/lomnia-ingester/branch/main/graph/badge.svg)](https://codecov.io/gh/lorenzopicoli/lomnia-ingester)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/lorenzopicoli/lomnia-ingester)](https://img.shields.io/github/commit-activity/m/lorenzopicoli/lomnia-ingester)
-[![License](https://img.shields.io/github/license/lorenzopicoli/lomnia-ingester)](https://img.shields.io/github/license/lorenzopicoli/lomnia-ingester)
-
 Coordinate, ingest and save data from multiple extractors
 
 - **Github repository**: <https://github.com/lorenzopicoli/lomnia-ingester/>
@@ -86,8 +80,6 @@ For activating the automatic documentation with MkDocs, see [here](https://fpgma
 To enable the code coverage reports, see [here](https://fpgmaas.github.io/cookiecutter-uv/features/codecov/).
 
 ## Releasing a new version
-
-
 
 ---
 
