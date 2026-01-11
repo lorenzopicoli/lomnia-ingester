@@ -1,0 +1,12 @@
+services:
+  lomnia-ingester:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lomnia-ingester
+    env_file:
+      - .env
+    volumes:
+      - ./plugins.yaml:/app/plugins.yaml:ro
+      - ./plugins_state.json:/app/plugins_state.json
+    restart: unless-stopped
