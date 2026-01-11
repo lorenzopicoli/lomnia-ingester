@@ -13,7 +13,7 @@ from lomnia_ingester.plugin_state_store import PluginStateStore
 from lomnia_ingester.queue.publisher import QueuePublisher
 from lomnia_ingester.storage.s3_client import S3Storage
 
-load_dotenv()
+_ = load_dotenv()
 logger = logging.getLogger(__name__)
 
 
@@ -52,12 +52,7 @@ class Configs:
 def load_plugins_config():
     with open("plugins.yaml") as stream:
         try:
-            config = yaml.safe_load(stream)
-            plugins = PluginsConfig(**config)
-            if plugins is None:
-                raise FailedToRunPlugin("MISSING_PLUGINS_CONFIG")
-            else:
-                return plugins
+            return PluginsConfig.model_validate(yaml.safe_load(stream))
         except yaml.YAMLError as exc:
             print(exc)
     raise FailedToRunPlugin("MISSING_PLUGINS_CONFIG")
