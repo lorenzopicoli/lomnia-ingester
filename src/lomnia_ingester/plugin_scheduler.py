@@ -16,8 +16,10 @@ def run_and_publish(plugin: Plugin):
 
 
 def schedule_plugins():
-    run_on_startup = []
+    run_on_startup: list[Plugin] = []
     for plugin in config.plugins.plugins:
+        if plugin.schedule is None:
+            continue
         if plugin.run_on_startup:
             run_on_startup.append(plugin)
         if plugin.schedule.interval_minutes:

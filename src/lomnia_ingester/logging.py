@@ -4,7 +4,7 @@ import logging.config
 from rich.logging import RichHandler
 
 
-def setup_logging(level="INFO"):
+def setup_logging(level: str = "INFO"):
     logging.config.dictConfig({
         "version": 1,
         "disable_existing_loggers": False,

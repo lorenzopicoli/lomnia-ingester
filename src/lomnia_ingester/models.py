@@ -20,12 +20,13 @@ class Plugin(BaseModel):
     path: Optional[Path] = Field(default=None, description="Local path to repository containing the plugin")
     folder: Optional[str] = Field(description="Folder inside the repo where the plugin lives")
     env: Optional[dict[str, str]] = Field(
+        default=None,
         description="Environment variables to pass to the plugin",
     )
     id: str = Field(
         description="String that uniquely identifies this plugin",
     )
-    schedule: PluginSchedule = Field(..., description="Scheduling information for the plugin")
+    schedule: Optional[PluginSchedule] = Field(None, description="Scheduling information for the plugin")
     run_on_startup: bool = Field(default=False, description="Should the plugin run as soon as the program start")
 
 
