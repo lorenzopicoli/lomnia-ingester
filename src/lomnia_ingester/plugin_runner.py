@@ -14,6 +14,11 @@ from lomnia_ingester.models import FailedToRunPlugin, Plugin, PluginOutput
 logger = logging.getLogger(__name__)
 
 
+# Ensure that env values are string
+def normalize_env(env: dict[str, object] | None) -> dict[str, str]:
+    return {} if not env else {k: str(v) for k, v in env.items()}
+
+
 def run_command(
     cmd: list[str],
     *,
@@ -27,7 +32,7 @@ def run_command(
         result = subprocess.run(  # noqa: S603
             cmd,
             cwd=cwd,
-            env=env,
+            env=normalize_env(env),
             check=True,
             capture_output=True,
             text=True,
@@ -47,7 +52,7 @@ def run_command(
     return result
 
 
-def run_extract(work_dir: Path, plugin: Plugin, out_dir: Path, start_date: datetime):
+def run_extract(work_dir: Path, plugin: Plugin, in_dir: Path | None, out_dir: Path, start_date: datetime):
     uv = shutil.which("uv")
     if uv is None:
         logger.error("uv executable not found")
@@ -63,16 +68,20 @@ def run_extract(work_dir: Path, plugin: Plugin, out_dir: Path, start_date: datet
         description="uv sync",
     )
 
+    extract_command = [
+        uv,
+        "run",
+        "extract",
+        "--start_date",
+        str(start_date.timestamp()),
+        "--out_dir",
+        str(out_dir),
+    ]
+    if in_dir is not None:
+        extract_command.append("--in_dir")
+        extract_command.append(str(in_dir))
     run_command(
-        [
-            uv,
-            "run",
-            "extract",
-            "--start_date",
-            str(start_date.timestamp()),
-            "--out_dir",
-            str(out_dir),
-        ],
+        extract_command,
         cwd=work_dir,
         env=plugin.env,
         description="plugin extract",
@@ -173,7 +182,7 @@ def get_latest_extract_start(out_dir: Path) -> Optional[datetime]:
 
 
 @contextmanager
-def run_plugin(plugin: Plugin):
+def run_plugin(plugin: Plugin, in_dir: Path | None):
     tmp = Path(tempfile.mkdtemp())
     raw_dir = Path(tempfile.mkdtemp())
     canonical_dir = Path(tempfile.mkdtemp())
@@ -198,12 +207,7 @@ def run_plugin(plugin: Plugin):
             logger.error(f"Plugin has no repo or path | plugin_id={plugin.id}")
             raise FailedToRunPlugin("MISSING_REPO_OR_PATH")  # noqa: TRY301
 
-        run_extract(
-            work_dir,
-            plugin=plugin,
-            out_dir=raw_dir,
-            start_date=start_date,
-        )
+        run_extract(work_dir, plugin=plugin, out_dir=raw_dir, start_date=start_date, in_dir=in_dir)
 
         latest_extract_date = get_latest_extract_start(raw_dir)
 

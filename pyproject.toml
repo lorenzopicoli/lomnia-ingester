@@ -5,7 +5,7 @@ description = "Coordinate, ingest and save data from multiple extractors"
 authors = [{ name = "Lorenzo Piccoli", email = "lorenzopicoli@me.com" }]
 readme = "README.md"
 keywords = ['python']
-requires-python = ">=3.9,<4.0"
+requires-python = ">=3.10,<4.0"
 classifiers = [
     "Intended Audience :: Developers",
     "Programming Language :: Python",
@@ -27,7 +27,7 @@ dependencies = [
     "pyyaml>=6.0.3",
     "rich>=14.2.0",
     "schedule>=1.2.2",
-    "streamlit>=1.50.0",
+    "streamlit>=1.53.0",
 ]
 
 [project.urls]

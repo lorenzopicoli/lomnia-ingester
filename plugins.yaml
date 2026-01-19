@@ -13,11 +13,13 @@ plugins:
       # interval_hours: 1
       # interval_days: 1
       # interval_months: 1
-  - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
-  # - path: /home/lorenzo/projects/lomnia-plugins
+  # - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
+  - path: /home/lorenzo/projects/lomnia-plugins
     folder: legacy-locations
     id: legacy-locations
-    # env:
+    env:
+      DEVICE: shiba
+      SKIP_SCHEMA_CHECK: true
     #   IN_DIR: "/Users/lorenzo/Legacy Locations"
     run_on_startup: false
     # schedule:

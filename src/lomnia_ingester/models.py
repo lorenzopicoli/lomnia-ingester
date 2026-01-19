@@ -19,7 +19,7 @@ class Plugin(BaseModel):
     )
     path: Optional[Path] = Field(default=None, description="Local path to repository containing the plugin")
     folder: Optional[str] = Field(description="Folder inside the repo where the plugin lives")
-    env: Optional[dict[str, str]] = Field(
+    env: Optional[dict[str, str | bool]] = Field(
         default=None,
         description="Environment variables to pass to the plugin",
     )
