@@ -21,7 +21,7 @@ class QueuePublisher:
         conn = pika.BlockingConnection(self.connection_params)
         channel = conn.channel()
 
-        channel.queue_declare(queue=self.queue_name, durable=True)
+        channel.queue_declare(queue=self.queue_name, durable=True)  # pyright: ignore[reportUnknownMemberType]
         channel.basic_publish(
             exchange="",
             routing_key=self.queue_name,

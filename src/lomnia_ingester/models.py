@@ -7,10 +7,10 @@ from pydantic.dataclasses import dataclass
 
 
 class PluginSchedule(BaseModel):
-    interval_minutes: Optional[int] = Field(None, description="Run plugin every N minutes")
-    interval_hours: Optional[int] = Field(None, description="Run plugin every N hours")
-    interval_days: Optional[int] = Field(None, description="Run plugin every N days")
-    interval_months: Optional[int] = Field(None, description="Run plugin every N months")
+    interval_minutes: Optional[int]
+    interval_hours: Optional[int]
+    interval_days: Optional[int]
+    interval_months: Optional[int]
 
 
 class Plugin(BaseModel):
@@ -36,13 +36,3 @@ class PluginOutput:
     canonical: Path
     extracted_at: datetime
     id: str
-
-
-class FailedToRunPlugin(ValueError):
-    def __init__(self, value):
-        super().__init__(value)
-
-
-class FailedToLoadPlugin(ValueError):
-    def __init__(self, value):
-        super().__init__(value)

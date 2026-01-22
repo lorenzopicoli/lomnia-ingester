@@ -9,9 +9,13 @@ from pathlib import Path
 from typing import Optional
 
 from lomnia_ingester.config import store
-from lomnia_ingester.models import FailedToRunPlugin, Plugin, PluginOutput
+from lomnia_ingester.models import Plugin, PluginOutput
 
 logger = logging.getLogger(__name__)
+
+
+class FailedToRunPlugin(Exception):
+    pass
 
 
 # Ensure that env values are string

@@ -1,7 +1,10 @@
+import logging
 from pathlib import Path
 
 import boto3
 from mypy_boto3_s3 import S3Client
+
+logger = logging.getLogger(__name__)
 
 
 class S3Storage:
@@ -14,7 +17,7 @@ class S3Storage:
         secret_access_key: str,
     ):
         self.bucket = bucket
-        self.client: S3Client = boto3.client(
+        self.client: S3Client = boto3.client(  # pyright: ignore[reportUnknownMemberType]
             "s3",
             region_name=region_name,
             endpoint_url=endpoint_url,
@@ -23,5 +26,6 @@ class S3Storage:
         )
 
     def upload_file(self, file_path: Path, key: str) -> str:
+        logger.info(f"Uploading file to s3 storage: {key}")
         self.client.upload_file(str(file_path), self.bucket, key)
         return key
