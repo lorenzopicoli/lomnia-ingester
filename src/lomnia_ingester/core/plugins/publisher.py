@@ -5,11 +5,15 @@ from pathlib import Path
 
 from pydantic.dataclasses import dataclass
 
-from lomnia_ingester.models import FailedToRunPlugin, PluginOutput
-from lomnia_ingester.queue.publisher import QueuePublisher
-from lomnia_ingester.storage.s3_client import S3Storage
+from lomnia_ingester.adapters.queue.queue_publisher import QueuePublisher
+from lomnia_ingester.adapters.storage.s3_client import S3Storage
+from lomnia_ingester.models import PluginOutput
 
 logger = logging.getLogger(__name__)
+
+
+class FailedToUploadPluginOutput(Exception):
+    pass
 
 
 @dataclass
@@ -39,8 +43,12 @@ class PluginOutputPublisher:
         )
 
         if not canonical_dir.exists():
-            logger.error(f"Canonical directory not found | plugin_id={output.id} | canonical_dir={canonical_dir}")
-            raise FailedToRunPlugin("CANONICAL_FOLDER_NOT_FOUND")
+            logger.error(
+                f"Canonical directory not found |\
+                    plugin_id={output.id} |\
+                    canonical_dir={canonical_dir}"
+            )
+            raise FailedToUploadPluginOutput("CANONICAL_FOLDER_NOT_FOUND")
 
         # Upload raw files
         for file in raw_dir.iterdir():
@@ -59,9 +67,11 @@ class PluginOutputPublisher:
             if not file.is_file():
                 continue
 
-            logger.debug(f"Uploading canonical file | plugin_id={output.id} | file={file}")
+            logger.debug(
+                f"Uploading canonical file | plugin_id={output.id} | file={file}"
+            )
 
-            result = self.upload(
+            result = self._upload(
                 folder=f"{output.id}/canonical",
                 file_path=file,
                 extracted_at=extracted_at,
@@ -73,7 +83,10 @@ class PluginOutputPublisher:
             }
 
             logger.info(
-                f"Publishing canonical file event | plugin_id={output.id} | bucket={result.bucket} | key={result.key}"
+                f"Publishing canonical file event |\
+                        plugin_id={output.id} |\
+                        bucket={result.bucket} |\
+                        key={result.key}"
             )
 
             if not file.name.endswith(".meta.json"):
@@ -81,7 +94,7 @@ class PluginOutputPublisher:
 
         logger.info(f"Finished handling plugin output | plugin_id={output.id}")
 
-    def upload(
+    def _upload(
         self,
         folder: str,
         file_path: Path,
@@ -90,7 +103,12 @@ class PluginOutputPublisher:
         date_path = extracted_at.strftime("%Y/%m/%d")
         key = f"plugins/{folder}/{date_path}/{file_path.name}"
 
-        logger.debug(f"Uploading file to storage | bucket={self.storage.bucket} | key={key} | local_path={file_path}")
+        logger.debug(
+            f"Uploading file to storage |\
+                    bucket={self.storage.bucket} |\
+                    key={key} |\
+                    local_path={file_path}"
+        )
 
         self.storage.upload_file(file_path, key)
 

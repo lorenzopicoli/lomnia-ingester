@@ -1,47 +1,73 @@
 import logging
 import time
+from collections.abc import Iterable
+from typing import Callable
 
 import schedule
 
-from lomnia_ingester.config import config, publisher
 from lomnia_ingester.models import Plugin
-from lomnia_ingester.plugin_runner import run_plugin
 
 logger = logging.getLogger(__name__)
 
-
-def run_and_publish(plugin: Plugin):
-    with run_plugin(plugin) as plugin_output:
-        publisher.handle_output(plugin_output)
+PluginRunner = Callable[[Plugin], None]
 
 
-def schedule_plugins():
-    run_on_startup: list[Plugin] = []
-    for plugin in config.plugins.plugins:
-        if plugin.schedule is None:
-            continue
-        if plugin.run_on_startup:
-            run_on_startup.append(plugin)
-        if plugin.schedule.interval_minutes:
-            logger.info(f"Scheduling plugin {plugin.id} every {plugin.schedule.interval_minutes} minutes")
-            schedule.every(plugin.schedule.interval_minutes).minutes.do(run_and_publish, plugin)
-        if plugin.schedule.interval_hours:
-            logger.info(f"Scheduling plugin {plugin.id} every {plugin.schedule.interval_hours} hours")
-            schedule.every(plugin.schedule.interval_hours).hours.do(run_and_publish, plugin)
-        if plugin.schedule.interval_days:
-            logger.info(f"Scheduling plugin {plugin.id} every {plugin.schedule.interval_days} days")
-            schedule.every(plugin.schedule.interval_days).days.do(run_and_publish, plugin)
-        if plugin.schedule.interval_months:
-            logger.info(f"Scheduling plugin {plugin.id} every {plugin.schedule.interval_months * 30} days")
-            schedule.every(plugin.schedule.interval_months * 30).days.do(run_and_publish, plugin)
-    for plugin in run_on_startup:
-        logger.debug(f"Running plugin {plugin.id} immediately since it has run_on_startup set to true")
-        run_and_publish(plugin)
+class PluginScheduler:
+    def __init__(self, plugins: Iterable[Plugin], runner: PluginRunner):
+        self._plugins = plugins
+        self._runner = runner
 
+    def schedule(self) -> None:
+        run_on_startup: list[Plugin] = []
 
-def schedule_and_wait():
-    logger.info("Scheduling plugins")
-    schedule_plugins()
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+        for plugin in self._plugins:
+            if plugin.schedule is None:
+                continue
+
+            if plugin.run_on_startup:
+                run_on_startup.append(plugin)
+
+            self._schedule_plugin(plugin)
+
+        for plugin in run_on_startup:
+            logger.debug(f"Running plugin {plugin.id} immediately (run_on_startup=true)")
+            self._runner(plugin)
+
+    def _schedule_plugin(self, plugin: Plugin) -> None:
+        schedule_config = plugin.schedule
+
+        if schedule_config is None:
+            return
+
+        if schedule_config.interval_minutes:
+            logger.info(
+                f"Scheduling plugin {plugin.id} every {schedule_config.interval_minutes} minutes"
+            )
+            schedule.every(schedule_config.interval_minutes).minutes.do(  # pyright: ignore[reportUnknownMemberType]
+                self._runner, plugin
+            )
+
+        if schedule_config.interval_hours:
+            logger.info(
+                f"Scheduling plugin {plugin.id} every {schedule_config.interval_hours} hours"
+            )
+            schedule.every(schedule_config.interval_hours).hours.do(self._runner, plugin)
+
+        if schedule_config.interval_days:
+            logger.info(
+                f"Scheduling plugin {plugin.id} every {schedule_config.interval_days} days"
+            )
+            schedule.every(schedule_config.interval_days).days.do(self._runner, plugin)  # pyright: ignore[reportUnknownMemberType]
+
+        if schedule_config.interval_months:
+            days = schedule_config.interval_months * 30
+            logger.info(
+                f"Scheduling plugin {plugin.id} every {days} days (monthly approximation)"
+            )
+            schedule.every(days).days.do(self._runner, plugin)  # pyright: ignore[reportUnknownMemberType]
+
+    def run_forever(self, tick_seconds: int = 1) -> None:
+        logger.info("Starting scheduler loop")
+        while True:
+            schedule.run_pending()
+            time.sleep(tick_seconds)

@@ -1,14 +1,16 @@
 import json
 import logging
 import shutil
-import subprocess
 import tempfile
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from lomnia_ingester.config import store
+from lomnia_ingester.adapters.storage.plugin_execution_repository import (
+    PluginExecutionRepository,
+)
+from lomnia_ingester.core.plugins.run_command import run_command
 from lomnia_ingester.models import Plugin, PluginOutput
 
 logger = logging.getLogger(__name__)
@@ -18,233 +20,209 @@ class FailedToRunPlugin(Exception):
     pass
 
 
-# Ensure that env values are string
-def normalize_env(env: dict[str, object] | None) -> dict[str, str]:
-    return {} if not env else {k: str(v) for k, v in env.items()}
+class PluginRunner:
+    def __init__(self, plugin: Plugin, execution_repo: PluginExecutionRepository):
+        self.plugin = plugin
+        self.execution_repo = execution_repo
 
+    def _run_extract(
+        self,
+        work_dir: Path,
+        in_dir: Path | None,
+        out_dir: Path,
+        start_date: datetime | None,
+    ):
+        uv = shutil.which("uv")
+        if uv is None:
+            logger.error("uv executable not found")
+            raise FailedToRunPlugin("MISSING_EXECUTABLE_UV")
 
-def run_command(
-    cmd: list[str],
-    *,
-    cwd: Path | None = None,
-    env: dict | None = None,
-    description: str,
-):
-    logger.info(f"Running command | description={description} | cmd={cmd} | cwd={cwd if cwd else None}")
-
-    try:
-        result = subprocess.run(  # noqa: S603
-            cmd,
-            cwd=cwd,
-            env=normalize_env(env),
-            check=True,
-            capture_output=True,
-            text=True,
+        logger.info(
+            f"Starting extract | plugin_id={self.plugin.id} | work_dir={work_dir} | out_dir={out_dir} | start_date={start_date.isoformat()}"
         )
-    except subprocess.CalledProcessError as exc:
-        logger.exception(
-            f"Command failed | cmd={cmd} | cwd={cwd if cwd else None} | "
-            f"stdout={exc.stdout} | stderr={exc.stderr} | returncode={exc.returncode}"
+
+        run_command(
+            [uv, "sync"],
+            cwd=work_dir,
+            description="uv sync",
         )
-        raise
 
-    if result.stdout:
-        logger.debug(f"Command stdout | stdout={result.stdout}")
-    if result.stderr:
-        logger.debug(f"Command stderr | stderr={result.stderr}")
-
-    return result
-
-
-def run_extract(work_dir: Path, plugin: Plugin, in_dir: Path | None, out_dir: Path, start_date: datetime):
-    uv = shutil.which("uv")
-    if uv is None:
-        logger.error("uv executable not found")
-        raise FailedToRunPlugin("MISSING_EXECUTABLE_UV")
-
-    logger.info(
-        f"Starting extract | plugin_id={plugin.id} | work_dir={work_dir} | out_dir={out_dir} | start_date={start_date.isoformat()}"
-    )
-
-    run_command(
-        [uv, "sync"],
-        cwd=work_dir,
-        description="uv sync",
-    )
-
-    extract_command = [
-        uv,
-        "run",
-        "extract",
-        "--start_date",
-        str(start_date.timestamp()),
-        "--out_dir",
-        str(out_dir),
-    ]
-    if in_dir is not None:
-        extract_command.append("--in_dir")
-        extract_command.append(str(in_dir))
-    run_command(
-        extract_command,
-        cwd=work_dir,
-        env=plugin.env,
-        description="plugin extract",
-    )
-
-    logger.info(f"Extract completed | plugin_id={plugin.id}")
-
-
-def run_transform(work_dir: Path, plugin: Plugin, in_dir: Path, out_dir: Path):
-    uv = shutil.which("uv")
-    if uv is None:
-        logger.error("uv executable not found")
-        raise FailedToRunPlugin("MISSING_EXECUTABLE_UV")
-
-    logger.info(
-        f"Starting transform | plugin_id={plugin.id} | work_dir={work_dir} | in_dir={in_dir} | out_dir={out_dir}"
-    )
-
-    run_command(
-        [uv, "sync"],
-        cwd=work_dir,
-        description="uv sync",
-    )
-
-    run_command(
-        [
+        extract_command = [
             uv,
             "run",
-            "transform",
-            "--in_dir",
-            str(in_dir),
+            "extract",
             "--out_dir",
             str(out_dir),
-        ],
-        cwd=work_dir,
-        env=plugin.env,
-        description="plugin transform",
-    )
+        ]
 
-    logger.info(f"Transform completed | plugin_id={plugin.id}")
+        if start_date:
+            extract_command = [
+                *extract_command,
+                "--start_date",
+                str(start_date.timestamp()),
+            ]
 
+        if in_dir:
+            extract_command = [*extract_command, "--in_dir", str(in_dir)]
 
-def clone_plugin(repo_url: str, out_dir: str):
-    git = shutil.which("git")
-    if git is None:
-        logger.error("git executable not found")
-        raise FailedToRunPlugin("MISSING_EXECUTABLES")
+        run_command(
+            extract_command,
+            cwd=work_dir,
+            env=self.plugin.env,
+            description="plugin extract",
+        )
 
-    logger.info(f"Cloning plugin repository | repo_url={repo_url} | out_dir={out_dir}")
+        logger.info(f"Extract completed | plugin_id={self.plugin.id}")
 
-    run_command(
-        [git, "clone", repo_url, out_dir],
-        description="git clone",
-    )
+    def _run_transform(self, work_dir: Path, in_dir: Path, out_dir: Path):
+        uv = shutil.which("uv")
+        if uv is None:
+            logger.error("uv executable not found")
+            raise FailedToRunPlugin("MISSING_EXECUTABLE_UV")
 
+        logger.info(
+            f"Starting transform | plugin_id={self.plugin.id} | work_dir={work_dir} | in_dir={in_dir} | out_dir={out_dir}"
+        )
 
-def copy_plugin(path: str, out_dir: str):
-    src = Path(path)
-    dst = Path(out_dir)
+        run_command(
+            [uv, "sync"],
+            cwd=work_dir,
+            description="uv sync",
+        )
 
-    logger.info(f"Copying plugin from local path | src={src} | dst={dst}")
+        run_command(
+            [
+                uv,
+                "run",
+                "transform",
+                "--in_dir",
+                str(in_dir),
+                "--out_dir",
+                str(out_dir),
+            ],
+            cwd=work_dir,
+            env=self.plugin.env,
+            description="plugin transform",
+        )
 
-    if not src.exists():
-        logger.error(f"Plugin path does not exist | src={src}")
-        raise FailedToRunPlugin("PATH_DOES_NOT_EXIST")
+        logger.info(f"Transform completed | plugin_id={self.plugin.id}")
 
-    if dst.exists():
-        logger.debug(f"Destination exists, removing | dst={dst}")
-        shutil.rmtree(dst)
+    def _prepare_work_dir(self, work_dir: str):
+        if self.plugin.repo:
+            git = shutil.which("git")
+            if git is None:
+                logger.error("git executable not found")
+                raise FailedToRunPlugin("MISSING_EXECUTABLES")
 
-    shutil.copytree(src, dst)
-
-
-def get_latest_extract_start(out_dir: Path) -> Optional[datetime]:
-    latest: Optional[datetime] = None
-
-    for meta_path in out_dir.rglob("*.meta.json"):
-        try:
-            with meta_path.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            extract_start = data.get("extract_start")
-            if not extract_start:
-                continue
-
-            extract_start_dt = datetime.fromisoformat(extract_start)
-
-            if latest is None or extract_start_dt > latest:
-                latest = extract_start_dt
-
-        except Exception as exc:
-            logger.warning(
-                "Failed to read extract_start from meta file",
-                extra={"path": str(meta_path), "error": str(exc)},
+            logger.info(
+                f"Cloning plugin repository | repo_url={self.plugin.repo} | out_dir={work_dir}"
             )
 
-    return latest
+            run_command(
+                [git, "clone", str(self.plugin.repo), work_dir],
+                description="git clone",
+            )
+        elif self.plugin.path:
+            src = self.plugin.path
+            dst = Path(work_dir)
 
+            logger.info(f"Copying plugin from local path | src={src} | dst={dst}")
 
-@contextmanager
-def run_plugin(plugin: Plugin, in_dir: Path | None):
-    tmp = Path(tempfile.mkdtemp())
-    raw_dir = Path(tempfile.mkdtemp())
-    canonical_dir = Path(tempfile.mkdtemp())
-    work_dir = tmp / plugin.folder if plugin.folder is not None else tmp
+            if not src.exists():
+                logger.error(f"Plugin path does not exist | src={src}")
+                raise FailedToRunPlugin("PATH_DOES_NOT_EXIST")
 
-    last_week = datetime.now(timezone.utc) - timedelta(days=1)
-    extracted_at = datetime.now(timezone.utc)
+            if dst.exists():
+                logger.debug(f"Destination exists, removing | dst={dst}")
+                shutil.rmtree(dst)
 
-    start_date = store.get_next_start_date(plugin_name=plugin.id) or last_week
-    logger.info(f"Loading next extraction start date | {start_date}")
-
-    logger.info(
-        f"Starting plugin run | plugin_id={plugin.id} | tmp={tmp} | raw_dir={raw_dir} | canonical_dir={canonical_dir}"
-    )
-
-    try:
-        if plugin.repo:
-            clone_plugin(str(plugin.repo), str(tmp))
-        elif plugin.path:
-            copy_plugin(str(plugin.path), out_dir=str(tmp))
+            shutil.copytree(src, dst)
         else:
-            logger.error(f"Plugin has no repo or path | plugin_id={plugin.id}")
-            raise FailedToRunPlugin("MISSING_REPO_OR_PATH")  # noqa: TRY301
+            logger.error(f"Plugin has no repo or path | plugin_id={self.plugin.id}")
+            raise FailedToRunPlugin("MISSING_REPO_OR_PATH")
 
-        run_extract(work_dir, plugin=plugin, out_dir=raw_dir, start_date=start_date, in_dir=in_dir)
+    # Gets the latest extract date which should be the next start_date
+    def _get_latest_extract_start(self, extract_out_dir: Path) -> Optional[datetime]:
+        latest: Optional[datetime] = None
 
-        latest_extract_date = get_latest_extract_start(raw_dir)
+        for meta_path in extract_out_dir.rglob("*.meta.json"):
+            try:
+                with meta_path.open("r", encoding="utf-8") as f:
+                    data = json.load(f)
 
-        run_transform(
-            work_dir,
-            plugin=plugin,
-            in_dir=raw_dir,
-            out_dir=canonical_dir,
+                extract_start = data.get("extract_start")
+                if not extract_start:
+                    continue
+
+                extract_start_dt = datetime.fromisoformat(extract_start)
+
+                if latest is None or extract_start_dt > latest:
+                    latest = extract_start_dt
+
+            except Exception as exc:
+                logger.warning(
+                    "Failed to read extract_start from meta file",
+                    extra={"path": str(meta_path), "error": str(exc)},
+                )
+
+        return latest
+
+    @contextmanager
+    def run_plugin(self, in_dir: Path | None):
+        tmp = Path(tempfile.mkdtemp())
+        raw_dir = Path(tempfile.mkdtemp())
+        canonical_dir = Path(tempfile.mkdtemp())
+        work_dir = tmp / self.plugin.folder if self.plugin.folder is not None else tmp
+
+        extracted_at = datetime.now(timezone.utc)
+
+        start_date = self.execution_repo.get_next_start_date(plugin_name=self.plugin.id)
+        logger.info(f"Loading next extraction start date | {start_date}")
+
+        logger.info(
+            f"Starting plugin run |\
+                    plugin_id={self.plugin.id} |\
+                    tmp={tmp} | raw_dir={raw_dir} |\
+                    canonical_dir={canonical_dir}"
         )
 
-        yield PluginOutput(
-            raw=raw_dir,
-            canonical=canonical_dir,
-            extracted_at=extracted_at,
-            id=plugin.id,
-        )
+        try:
+            self._prepare_work_dir(str(tmp))
 
-        if latest_extract_date is not None:
-            logger.info(f"Saving next extraction start date | {latest_extract_date}")
-            store.set_next_start_date(
-                plugin_name=plugin.id,
-                next_start_date=latest_extract_date,
-                last_successful_run=datetime.now(timezone.utc),
+            self._run_extract(
+                work_dir, out_dir=raw_dir, start_date=start_date, in_dir=in_dir
             )
 
-        logger.info(f"Plugin run completed | plugin_id={plugin.id}")
+            latest_extract_date = self._get_latest_extract_start(raw_dir)
 
-    except Exception:
-        logger.exception(f"Plugin run failed | plugin_id={plugin.id}")
-        raise
+            self._run_transform(
+                work_dir,
+                in_dir=raw_dir,
+                out_dir=canonical_dir,
+            )
 
-    finally:
-        logger.debug(f"Cleaning up temporary directories | tmp={tmp}")
-        shutil.rmtree(tmp, ignore_errors=True)
-        shutil.rmtree(raw_dir, ignore_errors=True)
-        shutil.rmtree(canonical_dir, ignore_errors=True)
+            yield PluginOutput(
+                raw=raw_dir,
+                canonical=canonical_dir,
+                extracted_at=extracted_at,
+                id=self.plugin.id,
+            )
+
+            if latest_extract_date is not None:
+                logger.info(f"Saving next extraction start date | {latest_extract_date}")
+                self.execution_repo.on_succesfull_run(
+                    plugin_name=self.plugin.id,
+                    next_start_date=latest_extract_date,
+                )
+
+            logger.info(f"Plugin run completed | plugin_id={self.plugin.id}")
+
+        except Exception:
+            logger.exception(f"Plugin run failed | plugin_id={self.plugin.id}")
+            raise
+
+        finally:
+            logger.debug(f"Cleaning up temporary directories | tmp={tmp}")
+            shutil.rmtree(tmp, ignore_errors=True)
+            shutil.rmtree(raw_dir, ignore_errors=True)
+            shutil.rmtree(canonical_dir, ignore_errors=True)
