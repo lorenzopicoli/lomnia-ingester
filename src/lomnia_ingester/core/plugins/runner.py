@@ -141,27 +141,26 @@ class PluginRunner:
             logger.error(f"Plugin has no repo or path | plugin_id={self.plugin.id}")
             raise FailedToRunPlugin("MISSING_REPO_OR_PATH")
 
-    # Gets the latest extract date which should be the next start_date
-    def _get_latest_extract_start(self, extract_out_dir: Path) -> Optional[datetime]:
+    def _get_latest_date_extracted(self, canonical_out_dir: Path) -> Optional[datetime]:
         latest: Optional[datetime] = None
 
-        for meta_path in extract_out_dir.rglob("*.meta.json"):
+        for meta_path in canonical_out_dir.rglob("*.meta.json"):
             try:
                 with meta_path.open("r", encoding="utf-8") as f:
                     data = json.load(f)
 
-                extract_start = data.get("extract_start")
-                if not extract_start:
+                data_window_end = data.get("window_end")
+                if not data_window_end:
                     continue
 
-                extract_start_dt = datetime.fromisoformat(extract_start)
+                data_window_end_dt = datetime.fromisoformat(data_window_end)
 
-                if latest is None or extract_start_dt > latest:
-                    latest = extract_start_dt
+                if latest is None or data_window_end_dt > latest:
+                    latest = data_window_end_dt
 
             except Exception as exc:
                 logger.warning(
-                    "Failed to read extract_start from meta file",
+                    "Failed to read data_window_end from meta file",
                     extra={"path": str(meta_path), "error": str(exc)},
                 )
 
@@ -196,13 +195,13 @@ class PluginRunner:
                 in_dir=in_dir,
             )
 
-            latest_extract_date = self._get_latest_extract_start(raw_dir)
-
             self._run_transform(
                 work_dir,
                 in_dir=raw_dir,
                 out_dir=canonical_dir,
             )
+
+            latest_extract_date = self._get_latest_date_extracted(canonical_dir)
 
             yield PluginOutput(
                 raw=raw_dir,
