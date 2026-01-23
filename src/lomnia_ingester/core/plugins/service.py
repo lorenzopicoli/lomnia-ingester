@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Callable, Optional
 
 from lomnia_ingester.adapters.queue.queue_publisher import QueuePublisher
 from lomnia_ingester.adapters.storage.plugin_execution_repository import (
@@ -30,7 +31,12 @@ class PluginService:
         self.execution_repo = execution_repo
         self.publisher = PluginOutputPublisher(storage=storage, publisher=queue_publisher)
 
-    def run_single(self, plugin: Plugin, in_dir: Path | None = None):
+    def run_single(
+        self,
+        plugin: Plugin,
+        in_dir: Path | None = None,
+        output_callback: Optional[Callable[[str], None]] = None,
+    ):
         """
         Run a single plugin. Accepts an optional in_dir which is passed as parameter
         to the plugin. Useful if the directory for the plugin's input is in the server
@@ -38,7 +44,7 @@ class PluginService:
         """
         logger.info(f"Running single plugin {plugin} | {in_dir}")
         runner = PluginRunner(plugin=plugin, execution_repo=self.execution_repo)
-        with runner.run_plugin(in_dir) as output:
+        with runner.run_plugin(in_dir, output_callback=output_callback) as output:
             self.publisher.handle_output(output)
 
     def run_scheduler(self):

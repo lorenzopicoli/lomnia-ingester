@@ -5,7 +5,7 @@ import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from lomnia_ingester.adapters.storage.plugin_execution_repository import (
     PluginExecutionRepository,
@@ -31,6 +31,7 @@ class PluginRunner:
         in_dir: Path | None,
         out_dir: Path,
         start_date: datetime,
+        output_callback: Optional[Callable[[str], None]] = None,
     ):
         uv = shutil.which("uv")
         if uv is None:
@@ -45,6 +46,7 @@ class PluginRunner:
             [uv, "sync"],
             cwd=work_dir,
             description="uv sync",
+            output_callback=output_callback,
         )
 
         extract_command = [
@@ -70,11 +72,18 @@ class PluginRunner:
             cwd=work_dir,
             env=self.plugin.env,
             description="plugin extract",
+            output_callback=output_callback,
         )
 
         logger.info(f"Extract completed | plugin_id={self.plugin.id}")
 
-    def _run_transform(self, work_dir: Path, in_dir: Path, out_dir: Path):
+    def _run_transform(
+        self,
+        work_dir: Path,
+        in_dir: Path,
+        out_dir: Path,
+        output_callback: Optional[Callable[[str], None]] = None,
+    ):
         uv = shutil.which("uv")
         if uv is None:
             logger.error("uv executable not found")
@@ -88,6 +97,7 @@ class PluginRunner:
             [uv, "sync"],
             cwd=work_dir,
             description="uv sync",
+            output_callback=output_callback,
         )
 
         run_command(
@@ -103,6 +113,7 @@ class PluginRunner:
             cwd=work_dir,
             env=self.plugin.env,
             description="plugin transform",
+            output_callback=output_callback,
         )
 
         logger.info(f"Transform completed | plugin_id={self.plugin.id}")
@@ -168,7 +179,9 @@ class PluginRunner:
         return latest
 
     @contextmanager
-    def run_plugin(self, in_dir: Path | None):
+    def run_plugin(
+        self, in_dir: Path | None, output_callback: Optional[Callable[[str], None]] = None
+    ):
         tmp = Path(tempfile.mkdtemp())
         raw_dir = Path(tempfile.mkdtemp())
         canonical_dir = Path(tempfile.mkdtemp())
@@ -194,6 +207,7 @@ class PluginRunner:
                 out_dir=raw_dir,
                 start_date=start_date or self.plugin.initial_date,
                 in_dir=in_dir,
+                output_callback=output_callback,
             )
 
             latest_extract_date = self._get_latest_extract_start(raw_dir)
@@ -202,6 +216,7 @@ class PluginRunner:
                 work_dir,
                 in_dir=raw_dir,
                 out_dir=canonical_dir,
+                output_callback=output_callback,
             )
 
             yield PluginOutput(

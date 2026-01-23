@@ -10,6 +10,11 @@ from lomnia_ingester.adapters.storage.plugin_execution_repository import (
     PluginExecutionRepository,
 )
 from lomnia_ingester.adapters.storage.s3_client import S3Storage
+from lomnia_ingester.app.status_display import (
+    PluginExecutionStatus,
+    PluginOutputDisplay,
+    PluginStatusDisplay,
+)
 from lomnia_ingester.config import Configs, load_config
 from lomnia_ingester.core.plugins.service import PluginService
 from lomnia_ingester.logging import setup_logging
@@ -84,11 +89,29 @@ st.caption(selected_plugin.repo or selected_plugin.folder)
 
 run_clicked = st.button("Send", type="primary")
 
+# Initialize session state for status displays
+if "status_displays" not in st.session_state:
+    st.session_state.status_displays = {}
 
 if run_clicked:
     if not uploaded_files:
         st.error("Please upload a file.")
         st.stop()
+
+    # Create status display for this plugin execution
+    plugin_id = selected_plugin.id
+    status_display = PluginStatusDisplay(plugin_id)
+    output_display = PluginOutputDisplay(plugin_id)
+
+    # Store in session state
+    st.session_state.status_displays[plugin_id] = {
+        "status": status_display,
+        "output": output_display,
+    }
+
+    # Create output callback for real-time display
+    def output_callback(line: str):
+        output_display.append_line(line)
 
     # Save uploaded file to a temp location
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -98,4 +121,16 @@ if run_clicked:
 
         st.success("File uploaded")
 
-        application.service.run_single(selected_plugin, in_dir=Path(tmpdir))
+        try:
+            # Run plugin with real-time output
+            application.service.run_single(
+                selected_plugin, in_dir=Path(tmpdir), output_callback=output_callback
+            )
+
+            # Update status to completed
+            status_display.set_status(PluginExecutionStatus.COMPLETED)
+
+        except Exception as e:
+            # Update status to failed
+            status_display.set_status(PluginExecutionStatus.FAILED, f"Error: {e!s}")
+            st.error(f"Plugin execution failed: {e!s}")
