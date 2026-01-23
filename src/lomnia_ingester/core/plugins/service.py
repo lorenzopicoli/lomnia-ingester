@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from lomnia_ingester.adapters.queue.queue_publisher import QueuePublisher
@@ -9,6 +10,8 @@ from lomnia_ingester.core.plugins.publisher import PluginOutputPublisher
 from lomnia_ingester.core.plugins.runner import PluginRunner
 from lomnia_ingester.core.plugins.scheduler import PluginScheduler
 from lomnia_ingester.models import Plugin
+
+logger = logging.getLogger(__name__)
 
 
 class PluginService:
@@ -33,10 +36,13 @@ class PluginService:
         to the plugin. Useful if the directory for the plugin's input is in the server
         (eg. user uploaded a file and now we'd like to run this through the pipeline)
         """
+        logger.info(f"Running single plugin {plugin} | {in_dir}")
         runner = PluginRunner(plugin=plugin, execution_repo=self.execution_repo)
         with runner.run_plugin(in_dir) as output:
             self.publisher.handle_output(output)
 
     def run_scheduler(self):
+        logger.info("Starting scheduler")
         scheduler = PluginScheduler(plugins=self.plugins, runner=self.run_single)
+        scheduler.schedule()
         scheduler.run_forever()

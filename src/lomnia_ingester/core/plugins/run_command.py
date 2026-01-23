@@ -1,5 +1,6 @@
 import logging
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -21,26 +22,10 @@ def run_command(
     logger.info(
         f"Running command | description={description} | cmd={cmd} | cwd={cwd if cwd else None}"
     )
-
-    try:
-        result = subprocess.run(  # noqa: S603
-            cmd,
-            cwd=cwd,
-            env=_normalize_env(env),
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except subprocess.CalledProcessError as exc:
-        logger.exception(
-            f"Command failed | cmd={cmd} | cwd={cwd if cwd else None} | "
-            f"stdout={exc.stdout} | stderr={exc.stderr} | returncode={exc.returncode}"
-        )
-        raise
-
-    if result.stdout:
-        logger.debug(f"Command stdout | stdout={result.stdout}")
-    if result.stderr:
-        logger.debug(f"Command stderr | stderr={result.stderr}")
-
-    return result
+    subprocess.check_call(  # noqa: S603
+        cmd,
+        env=_normalize_env(env),
+        cwd=cwd,
+        stdout=sys.stdout,
+        stderr=subprocess.STDOUT,
+    )

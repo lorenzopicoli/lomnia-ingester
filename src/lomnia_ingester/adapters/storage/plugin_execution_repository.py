@@ -59,7 +59,7 @@ class PluginExecutionRepository:
 
     def get_next_start_date(self, plugin_name: str) -> Optional[datetime]:
         plugin = self._plugin(plugin_name)
-        return self._parse_dt(plugin["next_start_date"])
+        return self._parse_dt(plugin.get("next_start_date"))
 
     def on_succesfull_run(
         self,

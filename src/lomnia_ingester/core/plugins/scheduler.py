@@ -51,7 +51,7 @@ class PluginScheduler:
             logger.info(
                 f"Scheduling plugin {plugin.id} every {schedule_config.interval_hours} hours"
             )
-            schedule.every(schedule_config.interval_hours).hours.do(self._runner, plugin)
+            schedule.every(schedule_config.interval_hours).hours.do(self._runner, plugin)  # pyright: ignore[reportUnknownMemberType]
 
         if schedule_config.interval_days:
             logger.info(

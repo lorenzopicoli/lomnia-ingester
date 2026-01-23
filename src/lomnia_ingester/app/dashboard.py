@@ -1,12 +1,14 @@
 import logging
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import streamlit as st
-from pydantic.dataclasses import dataclass
 
 from lomnia_ingester.adapters.queue.queue_publisher import QueuePublisher
-from lomnia_ingester.adapters.storage.plugin_execution_repository import PluginExecutionRepository
+from lomnia_ingester.adapters.storage.plugin_execution_repository import (
+    PluginExecutionRepository,
+)
 from lomnia_ingester.adapters.storage.s3_client import S3Storage
 from lomnia_ingester.config import Configs, load_config
 from lomnia_ingester.core.plugins.service import PluginService
@@ -17,8 +19,6 @@ setup_logging(level="DEBUG")
 
 logger = logging.getLogger(__name__)
 logger.info("Application starting")
-
-logger.info("Loading config")
 
 
 @dataclass
@@ -48,8 +48,15 @@ def bootstrap():
 
     repo = PluginExecutionRepository(config.store.store_path)
 
-    service = PluginService(storage=storage, queue_publisher=queue_publisher, execution_repo=repo)
-    return Application(config=config, service=service)
+    service = PluginService(
+        storage=storage,
+        queue_publisher=queue_publisher,
+        execution_repo=repo,
+        plugins=config.plugins,
+    )
+    app = Application(config=config, service=service)
+    logger.info("Application bootstrapped succesfully")
+    return app
 
 
 application = bootstrap()
@@ -91,4 +98,4 @@ if run_clicked:
 
         st.success("File uploaded")
 
-        application.service.run(selected_plugin, in_dir=Path(tmpdir))
+        application.service.run_single(selected_plugin, in_dir=Path(tmpdir))

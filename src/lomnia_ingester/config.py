@@ -9,7 +9,6 @@ from pydantic_settings import BaseSettings
 
 from lomnia_ingester.models import Plugin
 
-load_dotenv()
 logger = logging.getLogger(__name__)
 
 
@@ -61,9 +60,12 @@ def load_plugins_config():
 
 
 def load_config() -> Configs:
-    return Configs(
+    load_dotenv()
+    configs = Configs(
         s3=S3Config.model_validate({}),
         queue=QueueConfig.model_validate({}),
         store=StoreConfig.model_validate({}),
         plugins=load_plugins_config().plugins,
     )
+    logger.info("Loaded configs succesfully")
+    return configs

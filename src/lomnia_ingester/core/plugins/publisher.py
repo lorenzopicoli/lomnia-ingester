@@ -57,7 +57,7 @@ class PluginOutputPublisher:
 
             logger.debug(f"Uploading raw file | plugin_id={output.id} | file={file}")
 
-            self.upload(
+            self._upload(
                 folder=f"{output.id}/raw",
                 file_path=file,
                 extracted_at=extracted_at,

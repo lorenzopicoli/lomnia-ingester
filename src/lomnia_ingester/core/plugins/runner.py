@@ -30,7 +30,7 @@ class PluginRunner:
         work_dir: Path,
         in_dir: Path | None,
         out_dir: Path,
-        start_date: datetime | None,
+        start_date: datetime,
     ):
         uv = shutil.which("uv")
         if uv is None:
@@ -190,7 +190,10 @@ class PluginRunner:
             self._prepare_work_dir(str(tmp))
 
             self._run_extract(
-                work_dir, out_dir=raw_dir, start_date=start_date, in_dir=in_dir
+                work_dir,
+                out_dir=raw_dir,
+                start_date=start_date or self.plugin.initial_date,
+                in_dir=in_dir,
             )
 
             latest_extract_date = self._get_latest_extract_start(raw_dir)
