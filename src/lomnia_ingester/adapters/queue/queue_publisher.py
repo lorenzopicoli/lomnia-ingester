@@ -4,18 +4,11 @@ import pika
 class QueuePublisher:
     def __init__(
         self,
-        host: str,
-        port: int,
-        username: str,
-        password: str,
+        url: str,
         queue_name: str,
     ):
         self.queue_name = queue_name
-        self.connection_params = pika.ConnectionParameters(
-            host=host,
-            port=port,
-            credentials=pika.PlainCredentials(username, password),
-        )
+        self.connection_params = pika.URLParameters(url + "/" + queue_name)
 
     def publish(self, message: bytes):
         conn = pika.BlockingConnection(self.connection_params)

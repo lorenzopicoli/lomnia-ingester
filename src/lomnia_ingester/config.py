@@ -30,10 +30,7 @@ class S3Config(BaseSettings):
 
 
 class QueueConfig(BaseSettings):
-    queue_host: str
-    queue_port: int
-    queue_username: str
-    queue_password: str
+    queue_url: str
     queue_name: str
 
 
