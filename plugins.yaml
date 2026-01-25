@@ -1,6 +1,6 @@
 plugins:
-  # - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
-  - path: /home/lorenzo/projects/lomnia-plugins
+  - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
+  # - path: /home/lorenzo/projects/lomnia-plugins
     folder: owntracks-recorder
     id: owntracks-recorder
     env:
@@ -10,12 +10,12 @@ plugins:
     run_on_startup: true
     initial_date: 2025-01-01T00:00:00Z
     schedule:
-      interval_minutes: 1
+      interval_minutes: 10
       # interval_hours: 1
       # interval_days: 1
       # interval_months: 1
-  # - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
-  - path: /home/lorenzo/projects/lomnia-plugins
+  - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
+  # - path: /home/lorenzo/projects/lomnia-plugins
     folder: legacy-locations
     id: legacy-locations
     env:

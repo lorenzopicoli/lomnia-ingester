@@ -4,6 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: lomnia-ingester
+    network_mode: "host"
+    # ports:
+    #   - '3010:3010'
     env_file:
       - .env
     volumes:
