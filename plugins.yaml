@@ -10,7 +10,7 @@ plugins:
     run_on_startup: true
     initial_date: 2025-01-01T00:00:00Z
     schedule:
-      interval_minutes: 10
+      interval_minutes: 1
       # interval_hours: 1
       # interval_days: 1
       # interval_months: 1

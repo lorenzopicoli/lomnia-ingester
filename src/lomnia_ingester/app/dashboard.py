@@ -2,7 +2,9 @@ import logging
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
+import pandas as pd
 import streamlit as st
 
 from lomnia_ingester.adapters.queue.queue_publisher import QueuePublisher
@@ -27,6 +29,7 @@ class Application:
     service: PluginService
 
 
+@st.cache_resource
 def bootstrap():
     setup_logging("DEBUG")
     config = load_config()
@@ -61,7 +64,27 @@ def bootstrap():
 
 application = bootstrap()
 
-st.set_page_config(page_title="Lomnia Plugin Runner", layout="centered")
+
+@st.cache_data(ttl=2)
+def load_executions(
+    _repo: PluginExecutionRepository,
+    *,
+    plugin_id: Optional[str] = None,
+):
+    rows = _repo.get_all_executions()
+
+    df = pd.DataFrame(rows)
+
+    if df.empty:
+        return df
+
+    if plugin_id:
+        df = df[df["plugin_id"] == plugin_id]
+
+    return df
+
+
+st.set_page_config(page_title="Lomnia Plugin Runner", layout="wide")
 st.title("Lomnia Plugin Runner", anchor=False)
 
 uploaded_files = st.file_uploader(
@@ -99,3 +122,33 @@ if run_clicked:
         st.success("File uploaded")
 
         application.service.run_single(selected_plugin, in_dir=Path(tmpdir))
+
+
+st.divider()
+st.subheader("Execution History")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    filter_plugin = st.selectbox(
+        "Filter by plugin",
+        options=["All", *list(plugin_labels.keys())],
+        index=0,
+    )
+
+
+plugin_filter_value = None if filter_plugin == "All" else filter_plugin
+
+df = load_executions(
+    application.service.execution_repo,
+    plugin_id=plugin_filter_value,
+)
+
+if df.empty:
+    st.info("No executions found.")
+else:
+    st.dataframe(  # pyright: ignore[reportUnknownMemberType]
+        df.sort_values("created_at", ascending=False),
+        width="content",
+        hide_index=True,
+    )

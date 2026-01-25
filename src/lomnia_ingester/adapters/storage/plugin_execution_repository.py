@@ -1,7 +1,7 @@
-import json
+import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, TypedDict
+from typing import Any, Optional, TypedDict
 
 
 class PluginLastRun(TypedDict):
@@ -14,65 +14,119 @@ class PluginExecutionState(TypedDict):
 
 
 class PluginExecutionRepository:
-    path: Path
     # { plugins: { <name>: { last_successful_run: ..., next_start_date: ... } } }
-    _state: PluginExecutionState
+    db: sqlite3.Connection
 
     def __init__(self, path: Path):
-        self.path = path
-        if path.exists():
-            with path.open("r") as f:
-                self._state = json.load(f)
-        else:
-            self._state = {"plugins": {}}
+        self.db = sqlite3.connect(
+            path / "ingester.db", timeout=5, isolation_level=None, check_same_thread=False
+        )
+        self.init_db()
 
-        # In case the file didn't have plugins
-        self._state.setdefault("plugins", {})
+    def init_db(self):
+        self.db.execute("""
+            CREATE TABLE IF NOT EXISTS executions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    def _save(self) -> None:
-        tmp_path = self.path.with_suffix(".tmp")
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
 
-        with tmp_path.open("w") as f:
-            json.dump(self._state, f, indent=2, sort_keys=True)
+                plugin_id TEXT NOT NULL,
 
-        tmp_path.replace(self.path)
+                next_start_date TEXT,
+                extracted_file TEXT,
+                transformed_file TEXT,
 
-    def _plugin(self, plugin_name: str) -> PluginLastRun:
-        plugins = self._state["plugins"]
+                was_successful INTEGER,
 
-        plugin = plugins.get(plugin_name)
-        if plugin is None:
-            plugin = PluginLastRun(last_successful_run=None, next_start_date=None)
-            plugins[plugin_name] = plugin
+                started_at TEXT,
+                ended_at TEXT,
 
-        return self._state["plugins"][plugin_name]
+                entities_count INTEGER,
+                run_reason TEXT
+            );
+            """)
+        self.db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_executions_plugin_id
+            ON executions (plugin_id);
+        """)
 
-    def _parse_dt(self, value: Optional[str]) -> Optional[datetime]:
-        if value is None:
+        self.db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_executions_was_successful
+            ON executions (was_successful);
+        """)
+
+        self.db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_executions_created_at
+            ON executions (created_at);
+        """)
+
+    def get_next_start_date(self, plugin_id: str) -> Optional[datetime]:
+        row = self.db.execute(
+            """
+            SELECT next_start_date
+            FROM executions
+            WHERE plugin_id = ?
+            AND next_start_date IS NOT NULL
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (plugin_id,),
+        ).fetchone()
+
+        if row is None:
             return None
-        return datetime.fromisoformat(value).astimezone(timezone.utc)
 
-    def _format_dt(self, value: Optional[datetime]) -> Optional[str]:
-        if value is None:
-            return None
-        return value.astimezone(timezone.utc).isoformat()
-
-    def get_next_start_date(self, plugin_name: str) -> Optional[datetime]:
-        plugin = self._plugin(plugin_name)
-        return self._parse_dt(plugin.get("next_start_date"))
+        return datetime.fromisoformat(row[0])
 
     def on_succesfull_run(
         self,
         *,
         plugin_name: str,
         next_start_date: datetime,
+        started_at: datetime,
     ) -> None:
-        plugin = self._plugin(plugin_name)
+        now = datetime.now(timezone.utc).isoformat()
 
-        plugin["next_start_date"] = self._format_dt(next_start_date)
-        plugin["last_successful_run"] = datetime.now(timezone.utc).isoformat()
+        self.db.execute(
+            """
+            INSERT INTO executions (
+                plugin_id,
+                was_successful,
+                next_start_date,
+                ended_at,
+                started_at
+            )
+            VALUES (?, 1, ?, ?, ?)
+            """,
+            (
+                plugin_name,
+                next_start_date.isoformat(),
+                now,
+                started_at,
+            ),
+        )
 
-        self._save()
+    def get_all_executions(self) -> list[dict[str, Any]]:
+        cursor = self.db.execute(
+            """
+            SELECT
+                id,
+                plugin_id,
+                created_at,
+                updated_at,
+                started_at,
+                ended_at,
+                next_start_date,
+                was_successful,
+                entities_count,
+                run_reason,
+                extracted_file,
+                transformed_file
+            FROM executions
+            ORDER BY created_at DESC
+            """
+        )
 
-    def all_plugins(self) -> dict[str, PluginLastRun]:
-        return dict(self._state["plugins"])
+        columns = [col[0] for col in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]

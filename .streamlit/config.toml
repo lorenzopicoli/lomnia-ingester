@@ -9,3 +9,9 @@ port = 3030
 base="dark"
 backgroundColor= "rgb(20, 20, 20)"
 primaryColor = "#463695"
+
+[ui]
+hideTopBar = true
+
+[client]
+toolbarMode = "viewer"

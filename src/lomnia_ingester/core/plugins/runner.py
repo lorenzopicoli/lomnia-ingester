@@ -174,8 +174,8 @@ class PluginRunner:
         work_dir = tmp / self.plugin.folder if self.plugin.folder is not None else tmp
 
         extracted_at = datetime.now(timezone.utc)
-
-        start_date = self.execution_repo.get_next_start_date(plugin_name=self.plugin.id)
+        started_at = datetime.now(timezone.utc)
+        start_date = self.execution_repo.get_next_start_date(plugin_id=self.plugin.id)
         logger.info(f"Loading next extraction start date | {start_date}")
 
         logger.info(
@@ -215,6 +215,7 @@ class PluginRunner:
                 self.execution_repo.on_succesfull_run(
                     plugin_name=self.plugin.id,
                     next_start_date=latest_extract_date,
+                    started_at=started_at,
                 )
 
             logger.info(f"Plugin run completed | plugin_id={self.plugin.id}")
