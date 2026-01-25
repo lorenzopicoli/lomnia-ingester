@@ -42,10 +42,7 @@ def bootstrap():
     )
 
     queue_publisher = QueuePublisher(
-        host=config.queue.queue_host,
-        port=config.queue.queue_port,
-        username=config.queue.queue_username,
-        password=config.queue.queue_password,
+        url=config.queue.queue_url,
         queue_name=config.queue.queue_name,
     )
 
