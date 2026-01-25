@@ -38,6 +38,10 @@ class StoreConfig(BaseSettings):
     store_path: Path
 
 
+class PluginsRegistry(BaseSettings):
+    plugins_registry_path: Path
+
+
 @dataclass
 class Configs:
     s3: S3Config
@@ -46,9 +50,9 @@ class Configs:
     store: StoreConfig
 
 
-def load_plugins_config():
+def load_plugins_config(plugins_registry_path: Path):
     logger.debug("Loading plugin config yaml file")
-    with open("plugins.yaml") as stream:
+    with open(plugins_registry_path) as stream:
         try:
             return PluginsConfig.model_validate(yaml.safe_load(stream))
         except yaml.YAMLError:
@@ -58,11 +62,12 @@ def load_plugins_config():
 
 def load_config() -> Configs:
     load_dotenv()
+    registry = PluginsRegistry.model_validate({})
     configs = Configs(
         s3=S3Config.model_validate({}),
         queue=QueueConfig.model_validate({}),
         store=StoreConfig.model_validate({}),
-        plugins=load_plugins_config().plugins,
+        plugins=load_plugins_config(registry.plugins_registry_path).plugins,
     )
     logger.info("Loaded configs succesfully")
     return configs
