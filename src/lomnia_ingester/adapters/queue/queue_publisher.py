@@ -8,7 +8,7 @@ class QueuePublisher:
         queue_name: str,
     ):
         self.queue_name = queue_name
-        self.connection_params = pika.URLParameters(url + "/" + queue_name)
+        self.connection_params = pika.URLParameters(url)
 
     def publish(self, message: bytes):
         conn = pika.BlockingConnection(self.connection_params)
