@@ -10,7 +10,7 @@ plugins:
     run_on_startup: true
     initial_date: 2025-01-01T00:00:00Z
     schedule:
-      interval_minutes: 1
+      interval_minutes: 5
       # interval_hours: 1
       # interval_days: 1
       # interval_months: 1
@@ -30,3 +30,20 @@ plugins:
       # interval_hours: 1
       # interval_days: 1
       # interval_months: 1
+  # - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
+  - path: /home/lorenzo/projects/lomnia-plugins
+    folder: firefox
+    id: firefox
+    env:
+      SKIP_SCHEMA_CHECK: false
+    #   IN_DIR: "/Users/lorenzo/Legacy Locations"
+    run_on_startup: false
+    initial_date: 1997-01-01T00:00:00Z
+  - path: /home/lorenzo/projects/lomnia-plugins
+    folder: hares
+    id: hares
+    env:
+      SKIP_SCHEMA_CHECK: false
+    #   IN_DIR: "/Users/lorenzo/Legacy Locations"
+    run_on_startup: false
+    initial_date: 1997-01-01T00:00:00Z
