@@ -16,7 +16,7 @@ docker pull ghcr.io/lorenzopicoli/lomnia-ingester:latest
 ### Run with Docker Compose
 
 1. Copy `example.env` to `.env` and configure your environment variables
-2. Ensure `plugins.yaml` and `plugins_state.json` are in the same directory
+2. Ensure `plugins.yaml` is in the same directory
 3. Run:
 
 ```bash

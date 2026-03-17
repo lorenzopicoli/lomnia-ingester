@@ -1,49 +1,59 @@
 plugins:
-  - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
-  # - path: /home/lorenzo/projects/lomnia-plugins
-    folder: owntracks-recorder
-    id: owntracks-recorder
-    env:
-      OWNTRACKS_USER: owntracks
-      OWNTRACKS_DEVICE: shiba
-      OWNTRACKS_URL: http://192.168.40.37:8083
-    run_on_startup: true
-    initial_date: 2025-01-01T00:00:00Z
-    schedule:
-      interval_minutes: 5
-      # interval_hours: 1
-      # interval_days: 1
-      # interval_months: 1
-  - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
-  # - path: /home/lorenzo/projects/lomnia-plugins
-    folder: legacy-locations
-    id: legacy-locations
-    env:
-      DEVICE: shiba
-      SKIP_SCHEMA_CHECK: true
-    #   IN_DIR: "/Users/lorenzo/Legacy Locations"
-    run_on_startup: false
-    initial_date: 1997-01-01T00:00:00Z
-    # schedule:
-      # never: True
-      # interval_minutes: 1
-      # interval_hours: 1
-      # interval_days: 1
-      # interval_months: 1
   # - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
+  # # - path: /home/lorenzo/projects/lomnia-plugins
+  #   folder: owntracks-recorder
+  #   id: owntracks-recorder
+  #   env:
+  #     OWNTRACKS_USER: owntracks
+  #     OWNTRACKS_DEVICE: shiba
+  #     OWNTRACKS_URL: http://192.168.40.37:8083
+  #   run_on_startup: true
+  #   initial_date: 2025-01-01T00:00:00Z
+  #   schedule:
+  #     interval_minutes: 5
+  #     # interval_hours: 1
+  #     # interval_days: 1
+  #     # interval_months: 1
+  # - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
+  # # - path: /home/lorenzo/projects/lomnia-plugins
+  #   folder: legacy-locations
+  #   id: legacy-locations
+  #   env:
+  #     DEVICE: shiba
+  #     SKIP_SCHEMA_CHECK: true
+  #   #   IN_DIR: "/Users/lorenzo/Legacy Locations"
+  #   run_on_startup: false
+  #   initial_date: 1997-01-01T00:00:00Z
+  #   # schedule:
+  #     # never: True
+  #     # interval_minutes: 1
+  #     # interval_hours: 1
+  #     # interval_days: 1
+  #     # interval_months: 1
+  # # - repo: https://github.com/lorenzopicoli/lomnia-plugins.git
+  # - path: /home/lorenzo/projects/lomnia-plugins
+  #   folder: firefox
+  #   id: firefox
+  #   env:
+  #     SKIP_SCHEMA_CHECK: false
+  #   #   IN_DIR: "/Users/lorenzo/Legacy Locations"
+  #   run_on_startup: false
+  #   initial_date: 1997-01-01T00:00:00Z
+  # - path: /home/lorenzo/projects/lomnia-plugins
+  #   folder: hares
+  #   id: hares
+  #   env:
+  #     SKIP_SCHEMA_CHECK: false
+  #   #   IN_DIR: "/Users/lorenzo/Legacy Locations"
+  #   run_on_startup: false
+  #   initial_date: 1997-01-01T00:00:00Z
   - path: /home/lorenzo/projects/lomnia-plugins
-    folder: firefox
-    id: firefox
+    folder: garmin
+    id: garmin
+    schedule:
+      interval_minutes: 1
     env:
       SKIP_SCHEMA_CHECK: false
     #   IN_DIR: "/Users/lorenzo/Legacy Locations"
-    run_on_startup: false
-    initial_date: 1997-01-01T00:00:00Z
-  - path: /home/lorenzo/projects/lomnia-plugins
-    folder: hares
-    id: hares
-    env:
-      SKIP_SCHEMA_CHECK: false
-    #   IN_DIR: "/Users/lorenzo/Legacy Locations"
-    run_on_startup: false
-    initial_date: 1997-01-01T00:00:00Z
+    run_on_startup: true 
+    initial_date: 2026-03-14T00:00:00Z
