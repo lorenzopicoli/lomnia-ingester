@@ -1,15 +1,11 @@
 import logging
+import os
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
-
-
-# Ensure that env values are string
-def _normalize_env(env: dict[str, Any] | None) -> dict[str, str]:
-    return {} if not env else {k: str(v) for k, v in env.items()}
 
 
 def run_command(
@@ -24,8 +20,14 @@ def run_command(
         f"Running command | description={description} | cmd={cmd} | cwd={cwd if cwd else None}"
     )
 
+    # Start from current environment - this is not good security wise. I should find a better way to have
+    # the plugin file define which env vars should be passed through
+    normalized_env = os.environ.copy()
+
+    # Merge custom env on top (if provided)
+    if env:
+        normalized_env.update({k: str(v) for k, v in env.items()})
     # Force unbuffered output for Python subprocesses
-    normalized_env = _normalize_env(env)
     normalized_env["PYTHONUNBUFFERED"] = "1"
 
     process = subprocess.Popen(  # noqa: S603
