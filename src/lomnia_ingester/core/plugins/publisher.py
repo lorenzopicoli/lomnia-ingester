@@ -20,6 +20,7 @@ class FailedToUploadPluginOutput(Exception):
 class PluginFilesUploadResult:
     bucket: str
     key: str
+    local_path: Path
 
 
 class PluginOutputPublisher:
@@ -31,11 +32,12 @@ class PluginOutputPublisher:
         self.storage = storage
         self.publisher = publisher
 
-    def handle_output(self, output: PluginOutput):
+    def upload_output(self, output: PluginOutput):
         canonical_dir = output.canonical
         raw_dir = output.raw
         extracted_at = output.extracted_at
 
+        uploaded: list[PluginFilesUploadResult] = []
         logger.info(
             f"Handling plugin output | plugin_id={output.id} | "
             f"raw_dir={raw_dir} | canonical_dir={canonical_dir} | "
@@ -76,23 +78,26 @@ class PluginOutputPublisher:
                 file_path=file,
                 extracted_at=extracted_at,
             )
+            uploaded.append(result)
 
-            payload = {
-                "bucket": result.bucket,
-                "key": result.key,
-            }
+        logger.info(f"Finished uploading plugin output | plugin_id={output.id}")
+        return uploaded
 
-            logger.info(
-                f"Publishing canonical file event |\
-                        plugin_id={output.id} |\
-                        bucket={result.bucket} |\
-                        key={result.key}"
-            )
+    def publish_file(self, uploaded: PluginFilesUploadResult):
+        payload = {
+            "bucket": uploaded.bucket,
+            "key": uploaded.key,
+        }
 
-            if not file.name.endswith(".meta.json"):
-                self.publisher.publish(json.dumps(payload).encode())
+        logger.info(
+            f"Publishing canonical file event |\
+                    bucket={uploaded.bucket} |\
+                    key={uploaded.key}"
+        )
 
-        logger.info(f"Finished handling plugin output | plugin_id={output.id}")
+        if not uploaded.local_path.name.endswith(".meta.json"):
+            self.publisher.publish(json.dumps(payload).encode())
+            logger.info(f"Finished publishing plugin output | dump={json.dumps(payload)}")
 
     def _upload(
         self,
@@ -113,6 +118,5 @@ class PluginOutputPublisher:
         self.storage.upload_file(file_path, key)
 
         return PluginFilesUploadResult(
-            bucket=self.storage.bucket,
-            key=key,
+            bucket=self.storage.bucket, key=key, local_path=file_path
         )

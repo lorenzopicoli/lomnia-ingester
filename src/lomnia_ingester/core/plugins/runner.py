@@ -203,20 +203,17 @@ class PluginRunner:
 
             latest_extract_date = self._get_latest_date_extracted(canonical_dir)
 
+            if latest_extract_date is None:
+                raise
+
             yield PluginOutput(
                 raw=raw_dir,
                 canonical=canonical_dir,
                 extracted_at=extracted_at,
                 id=self.plugin.id,
+                next_start=latest_extract_date,
+                started_at=started_at,
             )
-
-            if latest_extract_date is not None:
-                logger.info(f"Saving next extraction start date | {latest_extract_date}")
-                self.execution_repo.on_succesfull_run(
-                    plugin_name=self.plugin.id,
-                    next_start_date=latest_extract_date,
-                    started_at=started_at,
-                )
 
             logger.info(f"Plugin run completed | plugin_id={self.plugin.id}")
 

@@ -4,6 +4,7 @@ from lomnia_ingester.adapters.queue.queue_publisher import QueuePublisher
 from lomnia_ingester.adapters.storage.plugin_execution_repository import (
     PluginExecutionRepository,
 )
+from lomnia_ingester.adapters.storage.publishes_repository import PublishesRepository
 from lomnia_ingester.adapters.storage.s3_client import S3Storage
 from lomnia_ingester.config import load_config
 from lomnia_ingester.core.plugins.service import PluginService
@@ -33,12 +34,14 @@ def run_scheduler_process():
     )
 
     repo = PluginExecutionRepository(config.store.store_path)
+    publish_repo = PublishesRepository(config.store.store_path)
 
     service = PluginService(
         storage=storage,
         queue_publisher=queue_publisher,
         execution_repo=repo,
         plugins=config.plugins,
+        publish_repo=publish_repo,
     )
 
     service.run_scheduler()

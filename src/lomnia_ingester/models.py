@@ -48,3 +48,5 @@ class PluginOutput:
     canonical: Path
     extracted_at: datetime
     id: str
+    next_start: datetime
+    started_at: datetime
